@@ -38,8 +38,11 @@ public:
 	{
 		const char* mydir = ColdAPI_Storage::GetStorageDirectory();
 
-		std::memcpy(pchBuffer, mydir, cubBuffer);
-		return true;
+		if (pchBuffer != NULL && pchBuffer > NULL && cubBuffer >= NULL) {
+			std::memcpy(pchBuffer, mydir, cubBuffer);
+			return true;
+		}
+		return false;
 	}
 
 	void StartVoiceRecording()

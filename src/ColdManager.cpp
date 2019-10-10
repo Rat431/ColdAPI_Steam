@@ -45,10 +45,13 @@ namespace ColdAPI_DLC
 			{
 				if (ColdDLC_Config::DLCsCount > 0)
 				{
-					*pAppID = ColdDLC_Config::DLCsAPPID.at(iDLC);
-					*pbAvailable = true;
+					if(pAppID != NULL && pAppID > NULL)
+						*pAppID = ColdDLC_Config::DLCsAPPID.at(iDLC);
+					if(pbAvailable != NULL && pbAvailable > NULL)
+						*pbAvailable = true;
 					std::string Name = ColdDLC_Config::DLCsNames.at(iDLC);
-					std::memcpy(pchName, Name.c_str(), cchNameBufferSize);
+					if(pchName != NULL && pchName > NULL && cchNameBufferSize >= NULL)
+						std::memcpy(pchName, Name.c_str(), cchNameBufferSize);
 					return true;
 				}
 			}

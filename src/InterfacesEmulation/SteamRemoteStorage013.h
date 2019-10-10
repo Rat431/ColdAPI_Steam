@@ -12,7 +12,7 @@ public:
 			return true;
 		if (cubData < NULL)
 			return false;
-		if (pvData == NULL)
+		if (pvData <= NULL)
 			return false;
 
 		// Let's use std as more faster.
@@ -29,6 +29,11 @@ public:
 	{
 		if (!Steam_Config::RemoteStorage)
 			return NULL;
+		if (cubDataToRead < NULL)
+			return NULL;
+		if (pvData <= NULL)
+			return NULL;
+
 		// Let's use std as more faster.
 		std::FILE* File = std::fopen(ColdAPI_Storage::ConnectDirectoryToFile(pchFile), "rb");
 		if (File)
@@ -162,7 +167,8 @@ public:
 				long FileSize = std::ftell(File);
 				std::fseek(File, 0, SEEK_SET);
 				std::fclose(File);
-				*pnFileSizeInBytes = FileSize;
+				if (pnFileSizeInBytes != NULL && pnFileSizeInBytes > NULL)
+					*pnFileSizeInBytes = FileSize;
 				return FileName.c_str();
 			}
 		}
@@ -171,6 +177,10 @@ public:
 
 	bool GetQuota(int32* pnTotalBytes, int32* puAvailableBytes)
 	{
+		if (pnTotalBytes == NULL || pnTotalBytes < NULL)
+			return false;
+		if (puAvailableBytes == NULL || puAvailableBytes < NULL)
+			return false;
 		*pnTotalBytes = NULL;
 		*puAvailableBytes = INT_MAX;
 		return true;
@@ -223,6 +233,10 @@ public:
 	}
 	bool GetUGCDownloadProgress(UGCHandle_t hContent, uint32* puDownloadedBytes, uint32* puTotalBytes)
 	{
+		if (puDownloadedBytes == NULL || puDownloadedBytes < NULL)
+			return false;
+		if (puTotalBytes == NULL || puTotalBytes < NULL)
+			return false;
 		*puDownloadedBytes = 10;
 		*puTotalBytes = 10;
 		return true;
@@ -245,11 +259,16 @@ public:
 				long FileSize = std::ftell(File);
 				std::fseek(File, 0, SEEK_SET);
 				std::fclose(File);
-				*pnAppID = Steam_Config::AppId;
-				*ppchName = (char*)std::malloc(std::strlen(FileName.c_str()) + 10);
-				std::strcpy(*ppchName, FileName.c_str());
-				*pnFileSizeInBytes = FileSize;
-				*pSteamIDOwner = Steam_Config::UserID;
+				if (pnAppID != NULL && pnAppID > NULL)
+					*pnAppID = Steam_Config::AppId;
+				if (ppchName != NULL && ppchName > NULL) {
+					*ppchName = (char*)std::malloc(std::strlen(FileName.c_str()) + 10);
+					std::strcpy(*ppchName, FileName.c_str());
+				}
+				if (pnFileSizeInBytes != NULL && pnFileSizeInBytes > NULL)
+					*pnFileSizeInBytes = FileSize;
+				if (pSteamIDOwner != NULL && pSteamIDOwner > NULL)
+					*pSteamIDOwner = Steam_Config::UserID;
 				return true;
 			}
 		}
@@ -258,6 +277,10 @@ public:
 	int32	UGCRead(UGCHandle_t hContent, void* pvData, int32 cubDataToRead, uint32 uOffset, EUGCReadAction eAction)
 	{
 		if (!Steam_Config::RemoteStorage)
+			return NULL;
+		if (cubDataToRead < NULL)
+			return NULL;
+		if (pvData <= NULL)
 			return NULL;
 
 		ColdAPI_Storage::FillFileStructure(ColdAPI_Storage::GetUGCDirectory());

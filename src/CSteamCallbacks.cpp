@@ -57,11 +57,11 @@ namespace SteamCallback
 	{
 		auto iter = CallbacksBuffer.begin();
 
-		// Loop untill we find the asked callback to remove based on the ID.
+		// Loop untill we find the asked callback to remove based on the callback itself.
 		while (iter != CallbacksBuffer.end())
 		{
 			CCallbackBase* handleriter = *iter;
-			if (handleriter && handleriter->GetICallback() == callback)
+			if (handleriter && handleriter == handler)
 			{
 				CallbacksBuffer.erase(iter);
 				break;

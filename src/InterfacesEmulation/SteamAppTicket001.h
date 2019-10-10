@@ -19,13 +19,20 @@ public:
 				SLength--;
 				FSize = sizeof(uint32_t) + sizeof(uint64_t) + SLength;
 			}
-			std::memcpy(pvSignedTicket, &Steam_Config::AppId, sizeof(uint32_t));
-			std::memcpy((void*)((ULONG_PTR)pvSignedTicket + sizeof(uint32_t)), &Steam_Config::UserID, sizeof(uint64_t));
-			std::memcpy((void*)((ULONG_PTR)pvSignedTicket + sizeof(uint32_t) + sizeof(uint64_t)), Signature, SLength);
-			*piAppId = 0;
-			*piSteamId = sizeof(uint32_t);
-			*piSignature = sizeof(uint32_t) + sizeof(uint64_t);
-			*pcbSignature = SLength;
+			if (pvSignedTicket != NULL && pvSignedTicket > NULL)
+			{
+				std::memcpy(pvSignedTicket, &Steam_Config::AppId, sizeof(uint32_t));
+				std::memcpy((void*)((ULONG_PTR)pvSignedTicket + sizeof(uint32_t)), &Steam_Config::UserID, sizeof(uint64_t));
+				std::memcpy((void*)((ULONG_PTR)pvSignedTicket + sizeof(uint32_t) + sizeof(uint64_t)), Signature, SLength);
+			}
+			if(piAppId != NULL && piAppId > NULL)
+				*piAppId = 0;
+			if(piSteamId != NULL && piSteamId > NULL)
+				*piSteamId = sizeof(uint32_t);
+			if(piSignature != NULL && piSignature > NULL)
+				*piSignature = sizeof(uint32_t) + sizeof(uint64_t);
+			if(pcbSignature != NULL && pcbSignature > NULL)
+				*pcbSignature = SLength;
 			return FSize;
 		}
 		return NULL;

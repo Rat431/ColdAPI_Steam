@@ -88,8 +88,11 @@ public:
 
 	uint32 GetAppInstallDir(AppId_t appID, char* pchFolder, uint32 cchFolderBufferSize)
 	{
-		GetCurrentDirectoryA(cchFolderBufferSize, pchFolder);
-		return cchFolderBufferSize;
+		if (pchFolder != NULL && pchFolder > NULL && cchFolderBufferSize >= NULL) {
+			GetCurrentDirectoryA(cchFolderBufferSize, pchFolder);
+			return cchFolderBufferSize;
+		}
+		return NULL;
 	}
 	bool BIsAppInstalled(AppId_t appID)
 	{

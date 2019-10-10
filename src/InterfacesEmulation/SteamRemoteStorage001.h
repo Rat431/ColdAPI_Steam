@@ -12,7 +12,7 @@ public:
 			return true;
 		if (sizebytestowrite < NULL)
 			return false;
-		if(data == NULL)
+		if(data <= NULL)
 			return false;
 		
 		// Let's use std as more faster.
@@ -48,6 +48,11 @@ public:
 	{
 		if (!Steam_Config::RemoteStorage)
 			return false;
+		if(buffer <= NULL)
+			return false;
+		if(size < NULL)
+			return false;
+
 		// Let's use std as more faster.
 		std::FILE* File = std::fopen(ColdAPI_Storage::ConnectDirectoryToFile(filename), "rb");
 		if (File)
@@ -106,7 +111,8 @@ public:
 				long FileSize = std::ftell(File);
 				std::fseek(File, 0, SEEK_SET);
 				std::fclose(File);
-				*size = FileSize;
+				if(size != NULL && size > NULL)
+					*size = FileSize;
 				return FileName.c_str();
 			}
 		}
@@ -115,6 +121,10 @@ public:
 
 	bool GetQuota(int* current, int* maximum)
 	{
+		if (current == NULL || current < NULL)
+			return false;
+		if (maximum == NULL || maximum < NULL)
+			return false;
 		*current = NULL;
 		*maximum = INT_MAX;
 		return true;

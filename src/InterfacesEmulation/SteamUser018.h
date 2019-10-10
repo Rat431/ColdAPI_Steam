@@ -38,8 +38,11 @@ public:
 	{
 		const char* mydir = ColdAPI_Storage::GetStorageDirectory();
 
-		std::memcpy(pchBuffer, mydir, cubBuffer);
-		return true;
+		if (pchBuffer != NULL && pchBuffer > NULL && cubBuffer >= NULL) {
+			std::memcpy(pchBuffer, mydir, cubBuffer);
+			return true;
+		}
+		return false;
 	}
 
 	void StartVoiceRecording()
@@ -112,6 +115,10 @@ public:
 	{
 
 		// Create a new fake ticket
+		if (cbDataToInclude < NULL)
+			return NULL;
+		if (pDataToInclude <= NULL)
+			return NULL;
 
 		std::memset(TicketData, 0, sizeof(TicketData));
 		std::memcpy(TicketData, pDataToInclude, min(cbDataToInclude, sizeof(TicketData)));
@@ -127,8 +134,14 @@ public:
 
 	bool GetEncryptedAppTicket(void* pTicket, int cbMaxTicket, uint32 * pcbTicket)
 	{
+		if (pTicket <= NULL)
+			return false;
+		if (cbMaxTicket < NULL)
+			return false;
+
 		std::memcpy(pTicket, TicketData, min(cbMaxTicket, (unsigned int)sizeof(TicketData)));
-		*pcbTicket = sizeof(TicketData);
+		if (pcbTicket != NULL && pcbTicket > NULL)
+			* pcbTicket = sizeof(TicketData);
 		return true;
 	}
 
