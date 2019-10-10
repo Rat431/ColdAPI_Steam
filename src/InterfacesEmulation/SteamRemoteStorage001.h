@@ -121,9 +121,9 @@ public:
 
 	bool GetQuota(int* current, int* maximum)
 	{
-		if (current == NULL || current < NULL)
+		if (current <= NULL)
 			return false;
-		if (maximum == NULL || maximum < NULL)
+		if (maximum <= NULL)
 			return false;
 		*current = NULL;
 		*maximum = INT_MAX;

@@ -39,30 +39,24 @@ namespace ColdAPI_DLC
 {
 	bool GetDLCByIndex(int iDLC, unsigned int* pAppID, bool* pbAvailable, char* pchName, int cchNameBufferSize)
 	{
-		if (iDLC < ColdDLC_Config::DLCsCount)
+		if (iDLC < ColdDLC_Config::DLCsCount && !Steam_Config::UnlockAllDLCS && ColdDLC_Config::DLCsCount > 0)
 		{
-			if (!Steam_Config::UnlockAllDLCS)
-			{
-				if (ColdDLC_Config::DLCsCount > 0)
-				{
-					if(pAppID != NULL && pAppID > NULL)
-						*pAppID = ColdDLC_Config::DLCsAPPID.at(iDLC);
-					if(pbAvailable != NULL && pbAvailable > NULL)
-						*pbAvailable = true;
-					std::string Name = ColdDLC_Config::DLCsNames.at(iDLC);
-					if(pchName != NULL && pchName > NULL && cchNameBufferSize >= NULL)
-						std::memcpy(pchName, Name.c_str(), cchNameBufferSize);
-					return true;
-				}
-			}
+			if (pAppID != NULL && pAppID > NULL)
+				* pAppID = ColdDLC_Config::DLCsAPPID.at(iDLC);
+			if (pbAvailable != NULL && pbAvailable > NULL)
+				* pbAvailable = true;
+			std::string Name = ColdDLC_Config::DLCsNames.at(iDLC);
+			if (pchName != NULL && pchName > NULL && cchNameBufferSize >= NULL)
+				std::memcpy(pchName, Name.c_str(), cchNameBufferSize);
+			return true;
 		}
 		return false;
 	}
 	bool IsDLCAvailable(uint32_t Appid)
 	{
-		// Check if the requested AppId is not the same as the game setted one.
+		// Check if the requested AppId is not 0 or the same as the game setted one.
 
-		if (Appid != 0 || Steam_Config::AppId)
+		if (Appid != 0 && Appid != Steam_Config::AppId)
 		{
 			if (!Steam_Config::UnlockAllDLCS)
 			{

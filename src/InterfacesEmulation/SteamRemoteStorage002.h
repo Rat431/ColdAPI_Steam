@@ -110,9 +110,9 @@ public:
 
 	bool GetQuota(int32* pnTotalBytes, int32* puAvailableBytes)
 	{
-		if (pnTotalBytes == NULL || pnTotalBytes < NULL)
+		if (pnTotalBytes <= NULL)
 			return false;
-		if (puAvailableBytes == NULL || puAvailableBytes < NULL)
+		if (puAvailableBytes <= NULL)
 			return false;
 		*pnTotalBytes = NULL;
 		*puAvailableBytes = INT_MAX;

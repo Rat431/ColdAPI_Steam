@@ -183,9 +183,9 @@ public:
 
 	bool GetQuota(uint64* pnTotalBytes, uint64* puAvailableBytes)
 	{
-		if (pnTotalBytes == NULL || pnTotalBytes < NULL)
+		if (pnTotalBytes <= NULL)
 			return false;
-		if (puAvailableBytes == NULL || puAvailableBytes < NULL)
+		if (puAvailableBytes <= NULL)
 			return false;
 		*pnTotalBytes = NULL;
 		*puAvailableBytes = INT_MAX;
@@ -240,9 +240,9 @@ public:
 
 	bool	GetUGCDownloadProgress(UGCHandle_t hContent, int32* pnBytesDownloaded, int32* pnBytesExpected)
 	{
-		if (pnBytesDownloaded == NULL || pnBytesDownloaded < NULL)
+		if (pnBytesDownloaded <= NULL)
 			return false;
-		if (pnBytesExpected == NULL || pnBytesExpected < NULL)
+		if (pnBytesExpected <= NULL)
 			return false;
 		*pnBytesDownloaded = 10;
 		*pnBytesExpected = 10;
