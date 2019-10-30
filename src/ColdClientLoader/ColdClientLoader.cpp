@@ -232,11 +232,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			DWORD keyType = REG_SZ;
 			CHAR OrgSteamCDir[MAX_PATH] = { 0 };
 			CHAR OrgSteamCDir64[MAX_PATH] = { 0 };
-			DWORD Size = MAX_PATH;
+			DWORD Size1 = MAX_PATH;
+			DWORD Size2 = MAX_PATH;
 
 			// Get original values to restore later.
-			RegQueryValueExA(Registrykey, "SteamClientDll", 0, &keyType, (LPBYTE)& OrgSteamCDir, &Size);
-			RegQueryValueExA(Registrykey, "SteamClientDll64", 0, &keyType, (LPBYTE)& OrgSteamCDir64, &Size);
+			RegQueryValueExA(Registrykey, "SteamClientDll", 0, &keyType, (LPBYTE)& OrgSteamCDir, &Size1);
+			RegQueryValueExA(Registrykey, "SteamClientDll64", 0, &keyType, (LPBYTE)& OrgSteamCDir64, &Size2);
 
 			// Set values to Windows registry.
 			RegSetValueExA(Registrykey, "ActiveUser", NULL, REG_DWORD, (LPBYTE)& UserId, sizeof(DWORD));
