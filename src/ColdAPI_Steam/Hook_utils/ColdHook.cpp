@@ -53,6 +53,8 @@ namespace ColdHook_Service
 			ULONG_PTR* StartingBaseAddress = NULL;
 			SIZE_T AddressBytesCounter = NULL;
 			void* ReturnAddress = NULL;
+			SIZE_T Distance = NULL;
+			bool IsBack = false;
 
 			if (StartBaseAddress > NULL)
 			{
@@ -65,9 +67,22 @@ namespace ColdHook_Service
 						*StartingBaseAddress = StartBaseAddress;
 
 						// Loop untill we find a right address 
-						while ((ReturnAddress = VirtualAlloc((void*)*StartingBaseAddress, PageS, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)) == NULL)
+						for (;;)
 						{
-							*StartingBaseAddress += 0x1000;
+							// We give a range of 40MB
+							if (Distance >= 0x41943040 && !IsBack) {
+								// We try searching before the module address
+								Distance = 0x1000;
+								*StartingBaseAddress = (ULONG_PTR)StartBaseAddress - 0x1000;
+								IsBack = true;
+							}
+							if ((ReturnAddress = VirtualAlloc((void*)*StartingBaseAddress, PageS, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)) != NULL)
+								break;
+							if (!IsBack)
+								*StartingBaseAddress += 0x1000;
+							else
+								*StartingBaseAddress -= 0x1000;
+							Distance += 0x1000;
 						}
 						if (OutErrorCode > NULL) {
 							*OutErrorCode = NULL;
@@ -195,10 +210,10 @@ namespace ColdHook_Service
 											std::memcpy((void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*)), (void*)RequestedFAddress, TrampolineISize);
 
 											// Apply the return back jump
-											ULONG_PTR TempVar = (ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize;
-											*((BYTE*)(ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize) = 0xE9;
-											SIZE_T Jumpoffset = (ULONG_PTR)TNextInstruction - TempVar - MaxHSize;
-											std::memcpy((void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE)), &Jumpoffset, sizeof(DWORD));
+											*((BYTE*)(ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize) = 0xFF;
+											*((BYTE*)(ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE)) = 0x25;
+											std::memset((void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE) + sizeof(BYTE)), NULL, sizeof(DWORD));
+											*(void**)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD)) = (void*)TNextInstruction;
 
 											JumpTo = Redirection;
 											Redirection = (void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*));
@@ -415,10 +430,10 @@ namespace ColdHook_Service
 									std::memcpy((void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*)), Target, TrampolineISize);
 
 									// Apply the return back jump
-									*((BYTE*)(ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize) = 0xE9;
-									ULONG_PTR TempVar = (ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize;
-									SIZE_T Jumpoffset = (ULONG_PTR)TNextInstruction - TempVar  - MaxHSize;
-									std::memcpy((void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE)), &Jumpoffset, sizeof(DWORD));
+									*((BYTE*)(ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize) = 0xFF;
+									*((BYTE*)(ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE)) = 0x25;
+									std::memset((void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE) + sizeof(BYTE)), NULL, sizeof(DWORD));
+									*(void**)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*) + TrampolineISize + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD)) = (void*)TNextInstruction;
 
 									JumpTo = Redirection;
 									Redirection = (void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*));
