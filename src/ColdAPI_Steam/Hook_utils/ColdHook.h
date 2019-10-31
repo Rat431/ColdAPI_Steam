@@ -36,6 +36,7 @@
 #define FALIED_MEM_PROTECTION 26
 #define FALIED_MODULE_NOT_FOUND 27
 #define FALIED_FUNCTION_NOT_FOUND 28
+#define FALIED_OUT_RANGE 29
 
 // Warnings
 #define WARN_32_BIT 24
@@ -81,7 +82,7 @@ namespace ColdHook_Service
 		static unsigned int DisasmRange(SIZE_T* OutPutInstructionsSize, ULONG_PTR* OutNextInst, SIZE_T HookSize, _OffsetType BaseAddressFormat, int DVer, void* Buffer);
 
 		// Generate base address
-		static void* AllocateTrampoline(ULONG_PTR StartBaseAddress, SIZE_T PageS, int32_t* OutErrorCode);
+		static void* AllocateTrampoline(ULONG_PTR StartBaseAddress, SIZE_T PageS, int32_t* OutErrorCode, SIZE_T* ChangedHookSize);
 
 		// Arch
 		static bool Is64BitProcess();

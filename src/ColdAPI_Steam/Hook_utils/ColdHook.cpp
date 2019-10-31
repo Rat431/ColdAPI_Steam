@@ -47,7 +47,7 @@ namespace ColdHook_Service
 		}
 
 		// Generate base address
-		static void* AllocateTrampoline(ULONG_PTR StartBaseAddress, SIZE_T PageS, int32_t* OutErrorCode)
+		static void* AllocateTrampoline(ULONG_PTR StartBaseAddress, SIZE_T PageS, int32_t* OutErrorCode, SIZE_T* ChangedHookSize)
 		{
 			// Declare some function variables
 			ULONG_PTR* StartingBaseAddress = NULL;
@@ -70,10 +70,19 @@ namespace ColdHook_Service
 						for (;;)
 						{
 							// We give a range of 40MB
-							if (Distance >= 0x41943040 && !IsBack) {
+							if (Distance > 0x41943040) {
+								if (IsBack) {
+									if (OutErrorCode > NULL) {
+										*OutErrorCode = FALIED_OUT_RANGE;
+									}
+									// In that case we'll use another method to jump.
+									*ChangedHookSize = 0xE;
+									ReturnAddress = VirtualAlloc(NULL, PageS, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+									return ReturnAddress;
+								}
 								// We try searching before the module address
-								Distance = 0x1000;
-								*StartingBaseAddress = (ULONG_PTR)StartBaseAddress - 0x1000;
+								Distance = NULL;
+								*StartingBaseAddress = StartBaseAddress;
 								IsBack = true;
 							}
 							if ((ReturnAddress = VirtualAlloc((void*)*StartingBaseAddress, PageS, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE)) != NULL)
@@ -149,11 +158,15 @@ namespace ColdHook_Service
 			{
 				FARPROC RequestedFAddress = NULL;
 				HMODULE RequestedM = NULL;
+
 				ULONG_PTR TNextInstruction = NULL;
 				SIZE_T TrampolineISize = NULL;
 				SIZE_T MaxHSize = 5;
 				DWORD OldP = NULL;
 				int32_t Code = NULL;
+
+				BYTE HookDataB[0x100] = { 0 };
+				bool BytesStored = false;
 
 				void* Redirection = NULL;
 				void* JumpTo = NULL;
@@ -188,7 +201,12 @@ namespace ColdHook_Service
 					{
 						if (!ColdHook_Service::IsAddressRegisteredAsHook((void*)RequestedFAddress))
 						{
-							Redirection = ColdHook_Service::AllocateTrampoline((ULONG_PTR)RequestedM, 0x1000, &Code);
+							SIZE_T ChangedHookSize = NULL;
+
+							Redirection = ColdHook_Service::AllocateTrampoline((ULONG_PTR)RequestedM, 0x1000, &Code, &ChangedHookSize);
+							if (ChangedHookSize != NULL) {
+								MaxHSize = ChangedHookSize;
+							}
 							if (WrapFunction)
 							{
 								unsigned int DecodedI = ColdHook_Service::DisasmRange(&TrampolineISize, &TNextInstruction, MaxHSize, (ULONG_PTR)RequestedFAddress,
@@ -217,6 +235,23 @@ namespace ColdHook_Service
 
 											JumpTo = Redirection;
 											Redirection = (void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*));
+										}
+										else if (Code == FALIED_OUT_RANGE)
+										{
+											std::memcpy((void*)Redirection, (void*)RequestedFAddress, TrampolineISize);
+											*((BYTE*)(ULONG_PTR)Redirection + TrampolineISize) = 0xFF;
+											*((BYTE*)(ULONG_PTR)Redirection + TrampolineISize + sizeof(BYTE)) = 0x25;
+											std::memset((void*)((ULONG_PTR)Redirection + TrampolineISize + sizeof(BYTE) + sizeof(BYTE)), NULL, sizeof(DWORD));
+
+											*(void**)((ULONG_PTR)Redirection + TrampolineISize + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD)) = (void*)TNextInstruction;
+											JumpTo = HookedF;
+
+											// Hook bytes
+											HookDataB[0] = 0xFF;
+											HookDataB[1] = 0x25;
+											std::memset(&HookDataB[2], NULL, sizeof(DWORD));
+											std::memcpy(&HookDataB[6], &JumpTo, sizeof(void*));
+											BytesStored = true;
 										}
 										else if (Code == WARN_32_BIT)	// 32 bit
 										{
@@ -277,6 +312,18 @@ namespace ColdHook_Service
 										JumpTo = HookedF;
 										Redirection = (void*)RequestedFAddress;
 									}
+									else if (Code == FALIED_OUT_RANGE)
+									{
+										JumpTo = HookedF;
+										Redirection = (void*)RequestedFAddress;
+
+										// Hook bytes
+										HookDataB[0] = 0xFF;
+										HookDataB[1] = 0x25;
+										std::memset(&HookDataB[2], NULL, sizeof(DWORD));
+										std::memcpy(&HookDataB[6], &JumpTo, sizeof(void*));
+										BytesStored = true;
+									}
 									else
 									{
 										if (OutErrorCode > NULL) {
@@ -302,13 +349,15 @@ namespace ColdHook_Service
 
 								if (OutputInfo->OrgData > NULL && OutputInfo->HookData > NULL)
 								{
+									if (!BytesStored) {
+										// Set hook bytes
+										HookDataB[0] = 0xE9;
+										SIZE_T Jumpoffset = (ULONG_PTR)JumpTo - (ULONG_PTR)RequestedFAddress - MaxHSize;
+										std::memcpy(&HookDataB[1], &Jumpoffset, sizeof(DWORD));
+									}
 									std::memcpy(OutputInfo->OrgData, (void*)RequestedFAddress, MaxHSize);
-
-									*(BYTE*)RequestedFAddress = 0xE9;
-									SIZE_T Jumpoffset = (ULONG_PTR)JumpTo - (ULONG_PTR)RequestedFAddress - MaxHSize;
-									std::memcpy((void*)((ULONG_PTR)RequestedFAddress + sizeof(BYTE)), &Jumpoffset, sizeof(DWORD));
-
-									std::memcpy(OutputInfo->HookData, (void*)RequestedFAddress, MaxHSize);
+									std::memcpy((void*)RequestedFAddress, HookDataB, MaxHSize);
+									std::memcpy(OutputInfo->HookData, HookDataB, MaxHSize);
 
 									VirtualProtect((void*)RequestedFAddress, MaxHSize, OldP, &OldP);
 
@@ -403,12 +452,20 @@ namespace ColdHook_Service
 				DWORD OldP = NULL;
 				int32_t Code = NULL;
 
+				BYTE HookDataB[0x100] = { 0 };
+				bool BytesStored = false;
+
 				void* Redirection = NULL;
 				void* JumpTo = NULL;
 
 				if (!ColdHook_Service::IsAddressRegisteredAsHook(Target))
 				{
-					Redirection = ColdHook_Service::AllocateTrampoline((ULONG_PTR)Target, 0x1000, &Code);
+					SIZE_T ChangedHookSize = NULL;
+
+					Redirection = ColdHook_Service::AllocateTrampoline((ULONG_PTR)Target, 0x1000, &Code, &ChangedHookSize);
+					if (ChangedHookSize != NULL) {
+						MaxHSize = ChangedHookSize;
+					}
 					if (WrapFunction)
 					{
 						unsigned int DecodedI = ColdHook_Service::DisasmRange(&TrampolineISize, &TNextInstruction, MaxHSize, (ULONG_PTR)Target,
@@ -437,6 +494,23 @@ namespace ColdHook_Service
 
 									JumpTo = Redirection;
 									Redirection = (void*)((ULONG_PTR)Redirection + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD) + sizeof(void*));
+								}
+								else if (Code == FALIED_OUT_RANGE)
+								{
+									std::memcpy((void*)Redirection, Target, TrampolineISize);
+									*((BYTE*)(ULONG_PTR)Redirection + TrampolineISize) = 0xFF;
+									*((BYTE*)(ULONG_PTR)Redirection + TrampolineISize + sizeof(BYTE)) = 0x25;
+									std::memset((void*)((ULONG_PTR)Redirection + TrampolineISize + sizeof(BYTE) + sizeof(BYTE)), NULL, sizeof(DWORD));
+
+									*(void**)((ULONG_PTR)Redirection + TrampolineISize + sizeof(BYTE) + sizeof(BYTE) + sizeof(DWORD)) = (void*)TNextInstruction;
+									JumpTo = HookedF;
+
+									// Hook bytes
+									HookDataB[0] = 0xFF;
+									HookDataB[1] = 0x25;
+									std::memset(&HookDataB[2], NULL, sizeof(DWORD));
+									std::memcpy(&HookDataB[6], &JumpTo, sizeof(void*));
+									BytesStored = true;
 								}
 								else if (Code == WARN_32_BIT)	// 32 bit
 								{
@@ -491,6 +565,18 @@ namespace ColdHook_Service
 								JumpTo = Redirection;
 								Redirection = Target;
 							}
+							else if (Code == FALIED_OUT_RANGE)
+							{
+								JumpTo = HookedF;
+								Redirection = Target;
+
+								// Hook bytes
+								HookDataB[0] = 0xFF;
+								HookDataB[1] = 0x25;
+								std::memset(&HookDataB[2], NULL, sizeof(DWORD));
+								std::memcpy(&HookDataB[6], &JumpTo, sizeof(void*));
+								BytesStored = true;
+							}
 							else if (Code == WARN_32_BIT) // 32 bit
 							{
 								VirtualFree(Redirection, NULL, MEM_RELEASE);
@@ -524,12 +610,16 @@ namespace ColdHook_Service
 						{
 							std::memcpy(OutputInfo->OrgData, Target, MaxHSize);
 
-							*(BYTE*)Target = 0xE9;
-							SIZE_T Jumpoffset = (ULONG_PTR)JumpTo - (ULONG_PTR)Target - MaxHSize;
-							std::memcpy((void*)((ULONG_PTR)Target + sizeof(BYTE)), &Jumpoffset, sizeof(DWORD));
-
-							std::memcpy(OutputInfo->HookData, Target, MaxHSize);
-
+							if (!BytesStored) {
+								// Set hook bytes
+								HookDataB[0] = 0xE9;								
+								SIZE_T Jumpoffset = (ULONG_PTR)JumpTo - (ULONG_PTR)Target - MaxHSize;
+								std::memcpy(&HookDataB[1], &Jumpoffset, sizeof(DWORD));
+							}
+							std::memcpy(OutputInfo->OrgData, Target, MaxHSize);
+							std::memcpy(Target, HookDataB, MaxHSize);
+							std::memcpy(OutputInfo->HookData, HookDataB, MaxHSize);
+							
 							VirtualProtect(Target, MaxHSize, OldP, &OldP);
 
 							OutputInfo->FunctionName = "";
