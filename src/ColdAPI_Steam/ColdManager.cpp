@@ -2466,9 +2466,7 @@ namespace ColdAPI_InitAndShutDown
 				MessageBoxA(NULL, "Please set an AppID and try again.", "ColdAPI", MB_ICONERROR);
 				ExitProcess(NULL);
 			}
-			SetEnvironmentVariableA("SteamAppId", ColdAPI_General::FormatTheString("%lu", EMPTY, Steam_Config::AppId));
-			SetEnvironmentVariableA("SteamGameId", ColdAPI_General::FormatTheString("%llu", EMPTY, Steam_Config::AppId & 0xFFFFFF));
-
+	
 			// Declare some variables to be used for Steam registry.
 			DWORD UserIdentification = Steam_Config::UserID & 0xffffffff;
 			DWORD ProcessID = GetCurrentProcessId();
@@ -2479,6 +2477,9 @@ namespace ColdAPI_InitAndShutDown
 			// Check if we're not emulating steamclient as Registry is mainly used to get the steamclient directory to load it and for process checks.
 			if (!Steam_Config::ClientEmulation)
 			{
+				SetEnvironmentVariableA("SteamAppId", ColdAPI_General::FormatTheString("%lu", EMPTY, Steam_Config::AppId));
+				SetEnvironmentVariableA("SteamGameId", ColdAPI_General::FormatTheString("%llu", EMPTY, Steam_Config::AppId & 0xFFFFFF));
+
 				/// Steam Client and Steam overlay dll paths.
 				std::string Clientpath32 = ColdAPI_General::FormatTheString("%s\\steamclient.dll", ColdAPI_General::ColdAPI_GetSteamInstallPath(),
 					NULL);
