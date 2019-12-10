@@ -102,7 +102,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 	if (GetPrivateProfileIntA("SteamAdditional", "ClientEmulation", FALSE, CurrentDirectory) == TRUE)
 	{
-		if (!AppId[0]) {
+		if (!AppId[0] || lstrcmpA(AppId, "0") == 0) {
 			// In that case we try to read from steam_appid.txt file.
 			DWORD tmp;
 
@@ -119,7 +119,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 			}
 			CloseHandle(hSteamAPPID);
 		}
-		if (!AppId[0]) {
+		if (!AppId[0] || lstrcmpA(AppId, "0") == 0) {
 			MessageBoxA(NULL, "Please enter an AppId and try again.", "ColdClientLoader", MB_ICONERROR);
 			ExitProcess(NULL);
 		}
