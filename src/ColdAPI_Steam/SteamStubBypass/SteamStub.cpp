@@ -44,13 +44,13 @@ bool SStepFlag = false;
 ULONG_PTR PrecAddress = 0;
 
 
-typedef NTSTATUS(WINAPI* _NtAllocateVirtualMemory)(_In_ HANDLE, _Inout_ PVOID*, _In_  ULONG_PTR, _Inout_ PSIZE_T, _In_ ULONG, _In_  ULONG);
+typedef NTSTATUS(NTAPI* _NtAllocateVirtualMemory)(_In_ HANDLE, _Inout_ PVOID*, _In_  ULONG_PTR, _Inout_ PSIZE_T, _In_ ULONG, _In_  ULONG);
 _NtAllocateVirtualMemory __NtAllocateVirtualMemory;
 
 extern "C" void CallDispatcherData(void* Dispatcher);
 bool checked = false;
 
-extern "C" _declspec(dllexport) LPVOID WINAPI WVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD  flAllocationType, DWORD  flProtect)
+extern "C" _declspec(dllexport) LPVOID WINAPI _VirtualAlloc_(LPVOID lpAddress, SIZE_T dwSize, DWORD  flAllocationType, DWORD  flProtect)
 {
 	NTSTATUS status = __NtAllocateVirtualMemory((HANDLE)-1, &lpAddress, NULL, &dwSize, flAllocationType, flProtect);
 	if (status == NULL)
@@ -419,8 +419,8 @@ namespace SteamStubBypass
 
 		__NtAllocateVirtualMemory = (_NtAllocateVirtualMemory)GetProcAddress(hNtdll, "NtAllocateVirtualMemory");
 		VirtualAllocAPI = GetProcAddress(hKernel, "VirtualAlloc");
-		ULONG_PTR myWrapper = (ULONG_PTR)GetProcAddress(SteamApimod, "WVirtualAlloc");
-		ULONG_PTR myWrapper2 = (ULONG_PTR)GetProcAddress(SteamApimod, "handledExceptionFilter");
+		ULONG_PTR myWrapper = (ULONG_PTR)_VirtualAlloc_;
+		ULONG_PTR myWrapper2 = (ULONG_PTR)handledExceptionFilter;
 
 
 		if (!IsDebuggerPresentAPI)

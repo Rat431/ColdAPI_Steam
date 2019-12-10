@@ -15,14 +15,22 @@ public:
 		if (pvData <= NULL)
 			return false;
 
+		PublicSafe.lock();
+
+		char* ConnectedDir = (char*)ColdAPI_Storage::ConnectDirectoryToFile(pchFile);
+
 		// Let's use std as more faster.
-		std::FILE* File = std::fopen(ColdAPI_Storage::ConnectDirectoryToFile(pchFile), "wb");
+		std::FILE* File = std::fopen(ConnectedDir, "wb");
 		if (File)
 		{
 			std::fwrite(pvData, cubData, 1, File);
 			std::fclose(File);
+			ColdAPI_Storage::CloseMem(ConnectedDir);
+			PublicSafe.unlock();
 			return true;
 		}
+		ColdAPI_Storage::CloseMem(ConnectedDir);
+		PublicSafe.unlock();
 		return false;
 	}
 	int32	FileRead(const char* pchFile, void* pvData, int32 cubDataToRead)
@@ -34,8 +42,12 @@ public:
 		if (pvData <= NULL)
 			return NULL;
 
+		PublicSafe.lock();
+
+		char* ConnectedDir = (char*)ColdAPI_Storage::ConnectDirectoryToFile(pchFile);
+
 		// Let's use std as more faster.
-		std::FILE* File = std::fopen(ColdAPI_Storage::ConnectDirectoryToFile(pchFile), "rb");
+		std::FILE* File = std::fopen(ConnectedDir, "rb");
 		if (File)
 		{
 			std::fseek(File, 0, SEEK_END);
@@ -46,8 +58,12 @@ public:
 			int32_t Min = min(cubDataToRead, FileSize);
 			std::fread(pvData, Min, 1, File);
 			std::fclose(File);
+			ColdAPI_Storage::CloseMem(ConnectedDir);
+			PublicSafe.unlock();
 			return Min;
 		}
+		ColdAPI_Storage::CloseMem(ConnectedDir);
+		PublicSafe.unlock();
 		return NULL;
 	}
 
@@ -77,10 +93,19 @@ public:
 	{
 		if (!Steam_Config::RemoteStorage)
 			return false;
-		const char* myfile = ColdAPI_Storage::ConnectDirectoryToFile(pchFile);
-		if (GetFileAttributesA(myfile) == INVALID_FILE_ATTRIBUTES)
+
+		PublicSafe.lock();
+
+		char* myfile = (char*)ColdAPI_Storage::ConnectDirectoryToFile(pchFile);
+		if (GetFileAttributesA(myfile) == INVALID_FILE_ATTRIBUTES) {
+			ColdAPI_Storage::CloseMem(myfile);
+			PublicSafe.unlock();
 			return false;
-		return (DeleteFileA(myfile) == TRUE);
+		}
+		bool Deleted = DeleteFileA(myfile) == TRUE;
+		ColdAPI_Storage::CloseMem(myfile);
+		PublicSafe.unlock();
+		return Deleted;
 	}
 
 	SteamAPICall_t FileShare(const char* pchFile)
@@ -94,26 +119,51 @@ public:
 
 	UGCFileWriteStreamHandle_t FileWriteStreamOpen(const char* pchFile)
 	{
-		return NULL;
+		PublicSafe.lock();
+		UGCFileWriteStreamHandle_t Handle = ColdAPI_Storage::CFileWriteStreamOpen(pchFile);
+		PublicSafe.unlock();
+		return Handle;
 	}
 	bool FileWriteStreamWriteChunk(UGCFileWriteStreamHandle_t writeHandle, const void* pvData, int32 cubData)
 	{
-		return true;
+		PublicSafe.lock();
+		bool Call = ColdAPI_Storage::bCFileWriteStreamWriteChunk(writeHandle, pvData, cubData);
+		PublicSafe.unlock();
+		return Call;
 	}
 	bool FileWriteStreamClose(UGCFileWriteStreamHandle_t writeHandle)
 	{
-		return true;
+		PublicSafe.lock();
+		bool Call = ColdAPI_Storage::bCFileWriteStreamClose(writeHandle);
+		PublicSafe.unlock();
+		return Call;
 	}
 	bool FileWriteStreamCancel(UGCFileWriteStreamHandle_t writeHandle)
 	{
-		return true;
+		PublicSafe.lock();
+		bool Call = ColdAPI_Storage::bCFileWriteStreamCancel(writeHandle);
+		PublicSafe.unlock();
+		return Call;
 	}
 
 	bool	FileExists(const char* pchFile)
 	{
-		if (!Steam_Config::RemoteStorage)
+		PublicSafe.lock();
+
+		// Variables 
+		bool Exists;
+		char* ConnectedDir = (char*)ColdAPI_Storage::ConnectDirectoryToFile(pchFile);
+
+		if (!Steam_Config::RemoteStorage) {
+			ColdAPI_Storage::CloseMem(ConnectedDir);
+			PublicSafe.unlock();
 			return false;
-		return (GetFileAttributesA(ColdAPI_Storage::ConnectDirectoryToFile(pchFile)) != INVALID_FILE_ATTRIBUTES);
+		}
+
+		Exists = GetFileAttributesA(ColdAPI_Storage::ConnectDirectoryToFile(pchFile)) != INVALID_FILE_ATTRIBUTES;
+		ColdAPI_Storage::CloseMem(ConnectedDir);
+		PublicSafe.unlock();
+		return Exists;
 	}
 	bool	FilePersisted(const char* pchFile)
 	{
@@ -125,7 +175,10 @@ public:
 	{
 		if (!Steam_Config::RemoteStorage)
 			return NULL;
-		const char* myfile = ColdAPI_Storage::ConnectDirectoryToFile(pchFile);
+
+		PublicSafe.lock();
+
+		char* myfile = (char*)ColdAPI_Storage::ConnectDirectoryToFile(pchFile);
 		// Let's use std as more faster.
 		std::FILE* File = std::fopen(myfile, "rb");
 		if (File)
@@ -134,8 +187,12 @@ public:
 			long FileSize = std::ftell(File);
 			std::fseek(File, 0, SEEK_SET);
 			std::fclose(File);
+			ColdAPI_Storage::CloseMem(myfile);
+			PublicSafe.unlock();
 			return FileSize;
 		}
+		ColdAPI_Storage::CloseMem(myfile);
+		PublicSafe.unlock();
 		return NULL;
 	}
 	int64	GetFileTimestamp(const char* pchFile)
@@ -151,22 +208,28 @@ public:
 	{
 		if (!Steam_Config::RemoteStorage)
 			return NULL;
+		PublicSafe.lock();
+		FilesMatrix.clear();
 		ColdAPI_Storage::FillFileStructure(ColdAPI_Storage::GetStorageDirectory());
+		PublicSafe.unlock();
 		return FilesMatrix.size(); // Return the vector size
 	}
 	const char* GetFileNameAndSize(int iFile, int32* pnFileSizeInBytes)
 	{
 		if (!Steam_Config::RemoteStorage)
 			return "";
-
+		PublicSafe.lock();
+		FilesMatrix.clear();
 		ColdAPI_Storage::FillFileStructure(ColdAPI_Storage::GetStorageDirectory());
 
 		if (iFile <= FilesMatrix.size())
 		{
 			std::string FileName = FilesMatrix.at(iFile);
 
+			char* ConnectedDir = (char*)ColdAPI_Storage::ConnectDirectoryToFile(FileName.c_str());
+
 			// Let's use std as more faster.
-			std::FILE* File = std::fopen(ColdAPI_Storage::ConnectDirectoryToFile(FileName.c_str()), "rb");
+			std::FILE* File = std::fopen(ConnectedDir, "rb");
 			if (File)
 			{
 				std::fseek(File, 0, SEEK_END);
@@ -175,9 +238,13 @@ public:
 				std::fclose(File);
 				if (pnFileSizeInBytes != NULL && pnFileSizeInBytes > NULL)
 					*pnFileSizeInBytes = FileSize;
+				ColdAPI_Storage::CloseMem(ConnectedDir);
+				PublicSafe.unlock();
 				return FileName.c_str();
 			}
+			ColdAPI_Storage::CloseMem(ConnectedDir);
 		}
+		PublicSafe.unlock();
 		return "";
 	}
 
@@ -209,13 +276,18 @@ public:
 		if (!Steam_Config::RemoteStorage)
 			return NULL;
 
+		PublicSafe.lock();
+		FilesMatrix.clear();
 		ColdAPI_Storage::FillFileStructure(ColdAPI_Storage::GetUGCDirectory());
 
 		if (FilesMatrix.size() >= hContent)
 		{
 			// Read the UGC File.
 			std::string FileName = FilesMatrix.at(hContent);
-			std::FILE* File = std::fopen(ColdAPI_Storage::ConnectUGCDirectoryToFile(FileName.c_str()), "rb");
+
+			char* UGCConnectedDir = (char*)ColdAPI_Storage::ConnectUGCDirectoryToFile(FileName.c_str());
+
+			std::FILE* File = std::fopen(UGCConnectedDir, "rb");
 			if (File)
 			{
 				std::fseek(File, 0, SEEK_END);
@@ -232,9 +304,13 @@ public:
 				std::memcpy(Response->m_pchFileName, FileName.c_str(), MAX_PATH);
 				Response->m_ulSteamIDOwner = Steam_Config::UserID;
 				SteamCallback::CreateNewRequest(Response, sizeof(*Response), Response->k_iCallback, RequestID);
+				ColdAPI_Storage::CloseMem(UGCConnectedDir);
+				PublicSafe.unlock();
 				return RequestID;
 			}
+			ColdAPI_Storage::CloseMem(UGCConnectedDir);
 		}
+		PublicSafe.unlock();
 		return NULL;
 	}
 
@@ -254,13 +330,18 @@ public:
 		if (!Steam_Config::RemoteStorage)
 			return false;
 
+		PublicSafe.lock();
+		FilesMatrix.clear();
 		ColdAPI_Storage::FillFileStructure(ColdAPI_Storage::GetUGCDirectory());
 
 		if (FilesMatrix.size() >= hContent)
 		{
 			// Read the UGC File.
 			std::string FileName = FilesMatrix.at(hContent);
-			std::FILE* File = std::fopen(ColdAPI_Storage::ConnectUGCDirectoryToFile(FileName.c_str()), "rb");
+
+			char* UGCConnectedDir = (char*)ColdAPI_Storage::ConnectUGCDirectoryToFile(FileName.c_str());
+
+			std::FILE* File = std::fopen(UGCConnectedDir, "rb");
 			if (File)
 			{
 				std::fseek(File, 0, SEEK_END);
@@ -277,9 +358,13 @@ public:
 					*pnFileSizeInBytes = FileSize;
 				if (pSteamIDOwner != NULL && pSteamIDOwner > NULL)
 					*pSteamIDOwner = Steam_Config::UserID;
+				ColdAPI_Storage::CloseMem(UGCConnectedDir);
+				PublicSafe.unlock();
 				return true;
 			}
+			ColdAPI_Storage::CloseMem(UGCConnectedDir);
 		}
+		PublicSafe.unlock();
 		return false;
 	}
 
@@ -292,13 +377,18 @@ public:
 		if (pvData <= NULL)
 			return NULL;
 
+		PublicSafe.lock();
+		FilesMatrix.clear();
 		ColdAPI_Storage::FillFileStructure(ColdAPI_Storage::GetUGCDirectory());
 
 		if (FilesMatrix.size() >= hContent)
 		{
 			// Read the UGC File.
 			std::string FileName = FilesMatrix.at(hContent);
-			std::FILE* File = std::fopen(ColdAPI_Storage::ConnectUGCDirectoryToFile(FileName.c_str()), "rb");
+
+			char* UGCConnectedDir = (char*)ColdAPI_Storage::ConnectUGCDirectoryToFile(FileName.c_str());
+
+			std::FILE* File = std::fopen(UGCConnectedDir, "rb");
 			if (File)
 			{
 				std::fseek(File, 0, SEEK_END);
@@ -309,9 +399,13 @@ public:
 				int32_t Min = min(cubDataToRead, FileSize);
 				std::fread(pvData, Min, 1, File);
 				std::fclose(File);
+				ColdAPI_Storage::CloseMem(UGCConnectedDir);
+				PublicSafe.unlock();
 				return Min;
 			}
+			ColdAPI_Storage::CloseMem(UGCConnectedDir);
 		}
+		PublicSafe.unlock();
 		return NULL;
 	}
 

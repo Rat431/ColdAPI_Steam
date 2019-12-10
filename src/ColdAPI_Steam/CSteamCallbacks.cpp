@@ -46,17 +46,23 @@ namespace SteamCallback
 	void RegisterCallback(CCallbackBase* handler, int callbackID)
 	{
 		// Store the new callback ID.
+		Thread.lock();
 		handler->SetICallback(callbackID);
 		// Store in the vector
 		CallbacksBuffer.push_back(handler);
+		Thread.unlock();
 	}
 	void RegisterCallResult(CCallbackBase* result, uint64_t call)
 	{
 		// Store the callresult from its ID.
+		Thread.lock();
 		ResultHandlersBuffers[call] = result;
+		Thread.unlock();
 	}
 	void UnregisterCallback(CCallbackBase* handler, int callback)
 	{
+		Thread.lock();
+
 		auto iter = CallbacksBuffer.begin();
 
 		// Loop untill we find the asked callback to remove based on the callback itself.
@@ -70,17 +76,23 @@ namespace SteamCallback
 			}
 			++iter;
 		}		
+
+		Thread.unlock();
 	}
 	void UnregisterCallResult(CCallbackBase* result, uint64_t call)
 	{
 		// Remove the callresult handler based on the ID.
+		Thread.lock();
 		ResultHandlersBuffers.erase(call);
+		Thread.unlock();
 	}
 	uint64_t RegisterCall(bool MarkActive)
 	{
 		// Return a new callresult id and set the status.
+		Thread.lock();
 		++_CallID;
 		_Calls[_CallID] = MarkActive;
+		Thread.unlock();
 		return _CallID;
 	}
 	void CreateNewRequest(void* data, int size, int type, uint64_t call)
@@ -106,6 +118,7 @@ namespace SteamCallback
 	bool CCGetCallBack(void* pCallbackMsg)
 	{
 		// Assuming we want to Run only callresults as we're returning its callresult ID by the interfaces functions.
+		Thread.lock();
 		if (pCallbackMsg > NULL)
 		{
 			CurrentCB = ResultsBuffer.begin();
@@ -131,15 +144,19 @@ namespace SteamCallback
 						cst->m_cubParam = cresC.Size;
 						cst->m_hAsyncCall = cresC.Call;
 						cst->m_iCallback = cresC.Type;
+						Thread.unlock();
 						return true;
 					}
 				}
 			}
 		}
+		Thread.unlock();
 		return false;
 	}
 	bool CCGetAPICallResult(uint64_t hSteamAPICall, void* pCallback, int cubCallback, int iCallbackExpected, bool* pbFailed)
 	{
+		Thread.lock();
+
 		if (hSteamAPICall && pCallback > NULL)
 		{
 			// Loop to our stored callresults.
@@ -153,6 +170,8 @@ namespace SteamCallback
 					std::memcpy(pCallback, cresC.Data, cresC.Size);
 					if(pbFailed > NULL)
 						*pbFailed = false;
+
+					Thread.unlock();
 					return true;
 				}
 				++criter;
@@ -160,11 +179,15 @@ namespace SteamCallback
 		}
 		if (pbFailed > NULL)
 			*pbFailed = true;
+
+		Thread.unlock();
 		return false;
 	}
 	void FreeCB()
 	{
+		Thread.lock();
 		if(!ResultsBuffer.empty())
 			ResultsBuffer.erase(CurrentCB);
+		Thread.unlock();
 	}
 }

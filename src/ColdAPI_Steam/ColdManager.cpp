@@ -9,6 +9,9 @@ namespace ColdDLC_Config
 }
 HMODULE OverLayModule = 0;
 std::vector<std::string> FilesMatrix;
+std::vector<std::string> Dirs;
+std::mutex PublicSafe;
+
 std::vector<InterfaceData> PublicInterfaces;
 std::vector<InterfaceInfo> PublicInterfacesInfo;
 
@@ -213,31 +216,81 @@ namespace ColdAPI_DLC
 }
 namespace ColdAPI_Storage
 {
-	static bool SecondTime = false;
-	static char FileAndDir[0x400] = { 0 };
-	const char* ConnectDirectoryToFile(const char* FileName)
+	char* ConnectDirectoryToFile(const char* FileName)
 	{
-		if (!SecondTime)
+		// Variables 
+		char* tempbuffer = nullptr;
+		char* FileAndDir = nullptr;
+		int ConstantDirLength = std::strlen(Steam_Config::SaveDirectory);
+		int ProvidedStringLength = std::strlen(FileName);
+		int CalcSize = ConstantDirLength + ProvidedStringLength;
+
+		FileAndDir = (char*)VirtualAlloc(nullptr, CalcSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+		if (FileAndDir)
 		{
-			std::strcpy(FileAndDir, Steam_Config::SaveDirectory);
-			SecondTime = true;
+			tempbuffer = (char*)VirtualAlloc(nullptr, CalcSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+			if (tempbuffer)
+			{
+				std::strcpy(FileAndDir, Steam_Config::SaveDirectory);
+				std::strcpy(&FileAndDir[ConstantDirLength], FileName);
+
+				for (int i = 0; i < ProvidedStringLength; i++, ConstantDirLength++)
+				{
+					if (FileAndDir[ConstantDirLength] == '\\' || FileAndDir[ConstantDirLength] == '/')
+					{
+						std::memcpy(tempbuffer, FileAndDir, ConstantDirLength);
+						DWORD ftyp = GetFileAttributesA(tempbuffer);
+						if (ftyp == INVALID_FILE_ATTRIBUTES) {
+							CreateDirectoryA(tempbuffer, NULL);
+						}
+					}
+				}
+				VirtualFree(tempbuffer, NULL, MEM_RELEASE);
+				return FileAndDir;
+			}
+			VirtualFree(FileAndDir, NULL, MEM_RELEASE);
 		}
-		std::string Filename = FileAndDir;
-		std::strcpy(&FileAndDir[Filename.find_last_of("/\\") + 1], FileName);
-		return FileAndDir;
+		return nullptr;
 	}
-	static bool USecondTime = false;
-	static char UFileAndDir[0x400] = { 0 };
-	const char* ConnectUGCDirectoryToFile(const char* FileName)
+	char* ConnectUGCDirectoryToFile(const char* FileName)
 	{
-		if (!USecondTime)
+		// Variables 
+		char* tempbuffer = nullptr;
+		char* FileAndDir = nullptr;
+		int ConstantDirLength = std::strlen(Steam_Config::UGCDirectotry);
+		int ProvidedStringLength = std::strlen(FileName);
+		int CalcSize = ConstantDirLength + ProvidedStringLength;
+
+		FileAndDir = (char*)VirtualAlloc(nullptr, CalcSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+		if (FileAndDir)
 		{
-			std::strcpy(UFileAndDir, Steam_Config::UGCDirectotry);
-			USecondTime = true;
+			tempbuffer = (char*)VirtualAlloc(nullptr, CalcSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+			if (tempbuffer)
+			{
+				std::strcpy(FileAndDir, Steam_Config::UGCDirectotry);
+				std::strcpy(&FileAndDir[ConstantDirLength], FileName);
+
+				for (int i = 0; i < ProvidedStringLength; i++, ConstantDirLength++)
+				{
+					if (FileAndDir[ConstantDirLength] == '\\' || FileAndDir[ConstantDirLength] == '/')
+					{
+						std::memcpy(tempbuffer, FileAndDir, ConstantDirLength);
+						DWORD ftyp = GetFileAttributesA(tempbuffer);
+						if (ftyp == INVALID_FILE_ATTRIBUTES) {
+							CreateDirectoryA(tempbuffer, NULL);
+						}
+					}
+				}
+				VirtualFree(tempbuffer, NULL, MEM_RELEASE);
+				return FileAndDir;
+			}
+			VirtualFree(FileAndDir, NULL, MEM_RELEASE);
 		}
-		std::string Filename = UFileAndDir;
-		std::strcpy(&UFileAndDir[Filename.find_last_of("/\\") + 1], FileName);
-		return UFileAndDir;
+		return nullptr;
 	}
 	static bool Ready = false;
 	const char* GetStorageDirectory()
@@ -286,9 +339,12 @@ namespace ColdAPI_Storage
 		// List files
 		WIN32_FIND_DATAA FindFileData;
 		HANDLE hFind = INVALID_HANDLE_VALUE;
+		char path[MAX_PATH + 0x200] = { 0 };
+		char tmp[MAX_PATH + 0x200] = { 0 };
+		int SaveDirL = std::strlen(Steam_Config::SaveDirectory);
+		int UGCSaveDirL = std::strlen(Steam_Config::UGCDirectotry);
 		std::string Path = Directory;
 
-		FilesMatrix.clear();
 		Path.append("*");
 
 		hFind = FindFirstFileA(Path.c_str(), &FindFileData);
@@ -296,8 +352,31 @@ namespace ColdAPI_Storage
 		{
 			do
 			{
-				if (!(FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-					FilesMatrix.push_back((char*)FindFileData.cFileName);
+				if ((std::strncmp(".", (char*)FindFileData.cFileName, 1) != 0) && (std::strncmp("..", (char*)FindFileData.cFileName, 2) != 0))
+				{
+					if (!(FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+						if (std::strncmp(Directory, Steam_Config::SaveDirectory, SaveDirL) == 0) {
+							std::memset(tmp, 0, sizeof(tmp));
+							std::memcpy(tmp, &Directory[SaveDirL], (std::strlen(Directory) - SaveDirL));
+							std::strcat(tmp, (char*)FindFileData.cFileName);
+							FilesMatrix.push_back(tmp);
+						}
+						else if (std::strncmp(Directory, Steam_Config::UGCDirectotry, UGCSaveDirL) == 0) {
+							std::memset(tmp, 0, sizeof(tmp));
+							std::memcpy(tmp, &Directory[UGCSaveDirL], (std::strlen(Directory) - UGCSaveDirL));
+							std::strcat(tmp, (char*)FindFileData.cFileName);
+							FilesMatrix.push_back(tmp);
+						}
+						else {
+							FilesMatrix.push_back((char*)FindFileData.cFileName);
+						}
+					}
+					else {
+						// Loop
+						std::sprintf(path, "%s%s/", Directory, (char*)FindFileData.cFileName);
+						FillFileStructure(path);
+					}
+				}
 			} while (FindNextFileA(hFind, &FindFileData) == TRUE);
 			FindClose(hFind);
 		}
@@ -386,6 +465,208 @@ namespace ColdAPI_Storage
 			UReady = true;
 		}
 		return Steam_Config::UGCDirectotry;
+	}
+
+	std::multimap<uint64_t, MyFileStream> Streams;
+	uint64_t GlobalStream = 0;
+	uint64_t ShareFile(const char* FileName)
+	{
+		return NULL;
+	}
+	uint64_t CFileWriteStreamOpen(const char* FileName)
+	{
+		// Variables 
+		char* FStreamName = nullptr;
+		int SLength = std::strlen(FileName);
+		MyFileStream stream;
+
+		++GlobalStream;
+		FStreamName = (char*)VirtualAlloc(nullptr, SLength, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+		if (!FStreamName) {
+			return NULL;
+		}
+
+		std::strcpy(FStreamName, FileName);
+		stream.Buffer = nullptr;
+		stream.FileNameS = FStreamName;
+		stream.lastbuffersize = 0;
+
+		Streams.insert(std::make_pair(GlobalStream, stream));
+		return GlobalStream;
+	}
+	int32_t CFileWriteStreamWriteChunk(uint64_t hStream, const void* pvData, int32_t cubData)
+	{
+		if (!hStream)
+			return 2;
+		if (!pvData)
+			return 2;
+		if (!cubData)
+			return 2;
+		if (cubData > (100 * 1024 * 1024))
+			return 2;
+
+		auto StreamRequested = Streams.find(hStream);
+		if (StreamRequested == Streams.end()) {
+			return 2;
+		}
+
+		// Write our data 
+		if (StreamRequested->second.Buffer == nullptr) {
+			StreamRequested->second.Buffer = (char*)VirtualAlloc(nullptr, cubData, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+			if (!StreamRequested->second.Buffer) {
+				return 2;
+			}
+			StreamRequested->second.lastbuffersize = cubData;
+		}
+		else {
+			if (cubData > StreamRequested->second.lastbuffersize) {
+				VirtualFree(StreamRequested->second.Buffer, NULL, MEM_RELEASE);
+				StreamRequested->second.Buffer = (char*)VirtualAlloc(nullptr, cubData, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+				if (!StreamRequested->second.Buffer) {
+					return 2;
+				}
+				StreamRequested->second.lastbuffersize = cubData;
+			}
+		}
+		std::memcpy(StreamRequested->second.Buffer, pvData, cubData);
+		return 1;
+	}
+	int32_t CFileWriteStreamClose(uint64_t hStream)
+	{
+		if (!hStream)
+			return 2;
+
+		auto StreamRequested = Streams.find(hStream);
+		if (StreamRequested == Streams.end()) {
+			return 2;
+		}
+		if (!StreamRequested->second.Buffer) {
+			return 2;
+		}
+		if (!StreamRequested->second.FileNameS) {
+			return 2;
+		}
+
+		// Save to our file
+		std::FILE* FileStream = std::fopen(ColdAPI_Storage::ConnectDirectoryToFile(StreamRequested->second.FileNameS), "wb");
+		if (FileStream)
+		{
+			std::fwrite(StreamRequested->second.Buffer, StreamRequested->second.lastbuffersize, 1, FileStream);
+			std::fclose(FileStream);
+		}
+		
+		if (StreamRequested->second.Buffer)
+			VirtualFree(StreamRequested->second.Buffer, NULL, MEM_RELEASE);
+		if(StreamRequested->second.FileNameS)
+			VirtualFree(StreamRequested->second.FileNameS, NULL, MEM_RELEASE);
+		Streams.erase(StreamRequested);
+		return 1;
+	}
+	int32_t CFileWriteStreamCancel(uint64_t hStream)
+	{
+		if (!hStream)
+			return 2;
+
+		auto StreamRequested = Streams.find(hStream);
+		if (StreamRequested == Streams.end()) {
+			return 2;
+		}
+		if (StreamRequested->second.Buffer)
+			VirtualFree(StreamRequested->second.Buffer, NULL, MEM_RELEASE);
+		if (StreamRequested->second.FileNameS)
+			VirtualFree(StreamRequested->second.FileNameS, NULL, MEM_RELEASE);
+		Streams.erase(StreamRequested);
+		return 1;
+	}
+	bool bCFileWriteStreamWriteChunk(uint64_t hStream, const void* pvData, int32_t cubData)
+	{
+		if (!hStream)
+			return false;
+		if (!pvData)
+			return false;
+		if (!cubData)
+			return false;
+		if (cubData > (100 * 1024 * 1024))
+			return false;
+
+		auto StreamRequested = Streams.find(hStream);
+		if (StreamRequested == Streams.end()) {
+			return false;
+		}
+
+		// Write our data 
+		if (StreamRequested->second.Buffer == nullptr) {
+			StreamRequested->second.Buffer = (char*)VirtualAlloc(nullptr, cubData, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+			if (!StreamRequested->second.Buffer) {
+				return false;
+			}
+			StreamRequested->second.lastbuffersize = cubData;
+		}
+		else {
+			if (cubData > StreamRequested->second.lastbuffersize) {
+				VirtualFree(StreamRequested->second.Buffer, NULL, MEM_RELEASE);
+				StreamRequested->second.Buffer = (char*)VirtualAlloc(nullptr, cubData, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+				if (!StreamRequested->second.Buffer) {
+					return false;
+				}
+				StreamRequested->second.lastbuffersize = cubData;
+			}
+		}
+		std::memcpy(StreamRequested->second.Buffer, pvData, cubData);
+		return true;
+	}
+	bool bCFileWriteStreamClose(uint64_t hStream)
+	{
+		if (!hStream)
+			return false;
+
+		auto StreamRequested = Streams.find(hStream);
+		if (StreamRequested == Streams.end()) {
+			return false;
+		}
+		if (!StreamRequested->second.Buffer) {
+			return false;
+		}
+		if (!StreamRequested->second.FileNameS) {
+			return false;
+		}
+
+		// Save to our file
+		std::FILE* FileStream = std::fopen(ColdAPI_Storage::ConnectDirectoryToFile(StreamRequested->second.FileNameS), "wb");
+		if (FileStream)
+		{
+			std::fwrite(StreamRequested->second.Buffer, StreamRequested->second.lastbuffersize, 1, FileStream);
+			std::fclose(FileStream);
+		}
+
+		if (StreamRequested->second.Buffer)
+			VirtualFree(StreamRequested->second.Buffer, NULL, MEM_RELEASE);
+		if (StreamRequested->second.FileNameS)
+			VirtualFree(StreamRequested->second.FileNameS, NULL, MEM_RELEASE);
+		Streams.erase(StreamRequested);
+		return true;
+	}
+	bool bCFileWriteStreamCancel(uint64_t hStream)
+	{
+		if (!hStream)
+			return false;
+
+		auto StreamRequested = Streams.find(hStream);
+		if (StreamRequested == Streams.end()) {
+			return false;
+		}
+		if (StreamRequested->second.Buffer)
+			VirtualFree(StreamRequested->second.Buffer, NULL, MEM_RELEASE);
+		if (StreamRequested->second.FileNameS)
+			VirtualFree(StreamRequested->second.FileNameS, NULL, MEM_RELEASE);
+		Streams.erase(StreamRequested);
+		return true;
+	}
+
+	void CloseMem(void* Buffer)
+	{
+		if(Buffer)
+			VirtualFree(Buffer, NULL, MEM_RELEASE);
 	}
 }
 namespace ColdAPI_General
@@ -2319,11 +2600,25 @@ namespace ColdAPI_General
 		// Check if we should read interfaces from the original steam_api.
 		if (GetPrivateProfileIntA("SteamAdditional", "InterfaceChecker", NULL, SteamINI) == TRUE)
 		{
-			HMODULE bytesorg = LoadLibraryA(SteamORG);
-			if (GetLastError() == ERROR_MOD_NOT_FOUND) {
+			HANDLE hOrg = CreateFileA(SteamORG, GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hOrg == INVALID_HANDLE_VALUE) {
 				MessageBoxA(NULL, "Couldn't load steam_api(64).org for scanning interfaces.", "ColdAPI", MB_ICONERROR);
 				ExitProcess(NULL);
 			}
+			HANDLE hMap = CreateFileMapping(hOrg, 0, PAGE_READONLY, 0, 0, 0);
+			if (hMap == NULL) {
+				CloseHandle(hOrg);
+				MessageBoxA(NULL, "Couldn't map in memory steam_api(64).org for scanning interfaces.", "ColdAPI", MB_ICONERROR);
+				ExitProcess(NULL);
+			}
+			LPVOID bytesorg = MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
+			if(bytesorg == nullptr) {
+				CloseHandle(hMap);
+				CloseHandle(hOrg);
+				MessageBoxA(NULL, "Couldn't map in memory steam_api(64).org for scanning interfaces.", "ColdAPI", MB_ICONERROR);
+				ExitProcess(NULL);
+			}
+
 			auto DosP = (IMAGE_DOS_HEADER*)bytesorg;
 			auto NtP = (IMAGE_NT_HEADERS*)((ULONG_PTR)bytesorg + DosP->e_lfanew);
 			auto SecP = IMAGE_FIRST_SECTION(NtP);
@@ -2341,7 +2636,7 @@ namespace ColdAPI_General
 			if (ExpectedSFound)
 			{
 				// We have now the original steam_api section base address. Let's search the string into it.
-				auto Buff = (LPSTR)((ULONG_PTR)bytesorg + SecP->VirtualAddress);
+				auto Buff = (LPSTR)((ULONG_PTR)bytesorg + SecP->PointerToRawData);
 
 				// Iter on our initialized interfaces
 				auto CInterfaceIter = PublicInterfaces.begin();
@@ -2352,14 +2647,14 @@ namespace ColdAPI_General
 					InterfaceData InterfaceC = *CInterfaceIter;
 
 					// Loop to the sectiion 
-					for (unsigned int i = 0; i < SecP->Misc.VirtualSize; i++)
+					for (unsigned int i = 0; i < SecP->SizeOfRawData; i++)
 					{
-						unsigned int RemainingBytes = SecP->Misc.VirtualSize - i;
+						unsigned int RemainingBytes = SecP->SizeOfRawData - i;
+						int Length = std::strlen(InterfaceC.key.c_str());
 
-						// Make sure that the remaining size is greater or equal to the string size to avoid memory out of range issues.
-						if (RemainingBytes >= std::strlen(InterfaceC.key.c_str()))
+						if (RemainingBytes >= Length)
 						{
-							if (std::strcmp(&Buff[i], InterfaceC.key.c_str()) == 0)
+							if (std::memcmp(&Buff[i], InterfaceC.key.c_str(), Length) == 0)
 							{
 								InterfaceInfo PublicInfo = { InterfaceC.SteamType, InterfaceC.Version };
 								PublicInterfacesInfo.push_back(PublicInfo);
@@ -2370,28 +2665,29 @@ namespace ColdAPI_General
 								break;
 							}
 						}
-						else {
-							// We cannot compare the string as the remaining bytes are less than the compared string size.
-							break;
-						}
 					}
 					++CInterfaceIter;
 				}
 
 				WritePrivateProfileStringA("SteamAdditional", "InterfaceChecker", "0", SteamINI);	// Disable interface checker
-				FreeLibrary(bytesorg); // Free original SteamApi module.
+				UnmapViewOfFile(bytesorg);
+				CloseHandle(hMap);
+				CloseHandle(hOrg);
 				return true;
 			}
+		}
+		else 
+		{
 			// Iter on our initialized interfaces
-			int Type = 0;
 			int LVersion = 0;
+			CSteamInterface b;
+			bool Dones[38] = { 0 };
 			for (auto CInterfaceIter = PublicInterfaces.begin(); CInterfaceIter != PublicInterfaces.end(); ++CInterfaceIter)
 			{
 				InterfaceData InterfaceC = *CInterfaceIter;
-				CSteamInterface IType = static_cast<CSteamInterface>(Type);
 
 				// Check and read interface types.
-				if (IType == InterfaceC.SteamType)
+				if (!Dones[InterfaceC.SteamType])
 				{
 					// To be safe we search the latest interface version as it'll be used if it was not specified from the ini.
 					auto LCInterfaceIter = CInterfaceIter;
@@ -2407,6 +2703,7 @@ namespace ColdAPI_General
 						if (InterfaceC.SteamType != LInterfaceC.SteamType) {
 							// Should be the latest.
 							--LCInterfaceIter;
+							LInterfaceC = *LCInterfaceIter;
 							LVersion = LInterfaceC.Version;
 							break;
 						}
@@ -2416,11 +2713,12 @@ namespace ColdAPI_General
 					int RVersion = GetPrivateProfileIntA("SteamInterfaces", InterfaceC.name.c_str(), LVersion, SteamINI);
 					InterfaceInfo PublicInfo = { InterfaceC.SteamType, RVersion };
 					PublicInterfacesInfo.push_back(PublicInfo);
-					Type++;
+
+					// Mark interface type as read
+					Dones[InterfaceC.SteamType] = true;
 				}
 			}
 		}
-
 		return true;
 	}
 	const char* FormatTheString(const char* Format, const char* ValueS, uint64_t ValueU)

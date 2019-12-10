@@ -53,12 +53,24 @@ namespace ColdAPI_DLC
 }
 namespace ColdAPI_Storage
 {
-	const char* ConnectDirectoryToFile(const char* FileName);
-	const char* ConnectUGCDirectoryToFile(const char* FileName);
+	char* ConnectDirectoryToFile(const char* FileName);
+	char* ConnectUGCDirectoryToFile(const char* FileName);
 	const char* GetStorageDirectory();
 	const char* GetUGCDirectory();
 	void FillFileStructure(const char* Directory);
 	void Storage_Initializzation();
+
+	uint64_t ShareFile(const char* FileName);
+
+	uint64_t CFileWriteStreamOpen(const char* FileName);
+	int32_t CFileWriteStreamWriteChunk(uint64_t hStream, const void* pvData, int32_t cubData);
+	int32_t CFileWriteStreamClose(uint64_t hStream);
+	int32_t CFileWriteStreamCancel(uint64_t hStream);
+	bool bCFileWriteStreamWriteChunk(uint64_t hStream, const void* pvData, int32_t cubData);
+	bool bCFileWriteStreamClose(uint64_t hStream);
+	bool bCFileWriteStreamCancel(uint64_t hStream);
+
+	void CloseMem(void* Buffer);
 }
 namespace ColdAPI_InitAndShutDown
 {

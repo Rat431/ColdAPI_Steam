@@ -80,7 +80,6 @@ enum CSteamInterface
 	STEAM_INPUT,
 	STEAM_PARTIES,
 	STEAM_REMOTEPLAY
-
 };
 
 
@@ -130,9 +129,16 @@ struct SteamContext
 	ULONG_PTR Flag;
 	ULONG_PTR Out;
 };
+struct MyFileStream
+{
+	void* Buffer;
+	size_t lastbuffersize;
+	char* FileNameS;
+};
 
 // public vars
 extern std::vector<std::string> FilesMatrix;
+extern std::mutex PublicSafe;
 extern HMODULE SteamApimod;
 extern char Steamapipath[MAX_PATH];
 extern char SteamModule[MAX_PATH];

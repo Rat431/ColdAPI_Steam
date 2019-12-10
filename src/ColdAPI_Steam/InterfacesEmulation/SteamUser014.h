@@ -113,6 +113,8 @@ public:
 		if(pDataToInclude <= NULL)
 			return NULL;
 
+		PublicSafe.lock();
+
 		std::memset(TicketData, 0, sizeof(TicketData));
 		std::memcpy(TicketData, pDataToInclude, min(cbDataToInclude, sizeof(TicketData)));
 
@@ -121,6 +123,8 @@ public:
 
 		Response->m_eResult = k_EResultOK;
 		SteamCallback::CreateNewRequest(Response, sizeof(*Response), Response->k_iCallback, RequestID );
+
+		PublicSafe.unlock();
 
 		return RequestID;
 	}
@@ -132,9 +136,14 @@ public:
 		if(cbMaxTicket < NULL)
 			return false;
 
+		PublicSafe.lock();
+
 		std::memcpy(pTicket, TicketData, min(cbMaxTicket, (unsigned int)sizeof(TicketData)));
 		if(pcbTicket != NULL && pcbTicket > NULL)
 			*pcbTicket = sizeof(TicketData);
+
+		PublicSafe.unlock();
+
 		return true;
 	}
 };
