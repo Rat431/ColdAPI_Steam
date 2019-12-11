@@ -475,6 +475,9 @@ namespace ColdAPI_Storage
 	}
 	uint64_t CFileWriteStreamOpen(const char* FileName)
 	{
+		if (!Steam_Config::RemoteStorage)
+			return NULL;
+
 		// Variables 
 		char* FStreamName = nullptr;
 		int SLength = std::strlen(FileName);
@@ -496,6 +499,8 @@ namespace ColdAPI_Storage
 	}
 	int32_t CFileWriteStreamWriteChunk(uint64_t hStream, const void* pvData, int32_t cubData)
 	{
+		if (!Steam_Config::RemoteStorage)
+			return 1;
 		if (!hStream)
 			return 2;
 		if (!pvData)
@@ -533,6 +538,9 @@ namespace ColdAPI_Storage
 	}
 	int32_t CFileWriteStreamClose(uint64_t hStream)
 	{
+		if (!Steam_Config::RemoteStorage)
+			return 1;
+
 		if (!hStream)
 			return 2;
 
@@ -564,6 +572,9 @@ namespace ColdAPI_Storage
 	}
 	int32_t CFileWriteStreamCancel(uint64_t hStream)
 	{
+		if (!Steam_Config::RemoteStorage)
+			return 1;
+
 		if (!hStream)
 			return 2;
 
@@ -580,6 +591,9 @@ namespace ColdAPI_Storage
 	}
 	bool bCFileWriteStreamWriteChunk(uint64_t hStream, const void* pvData, int32_t cubData)
 	{
+		if (!Steam_Config::RemoteStorage)
+			return true;
+
 		if (!hStream)
 			return false;
 		if (!pvData)
@@ -617,6 +631,9 @@ namespace ColdAPI_Storage
 	}
 	bool bCFileWriteStreamClose(uint64_t hStream)
 	{
+		if (!Steam_Config::RemoteStorage)
+			return true;
+
 		if (!hStream)
 			return false;
 
@@ -648,6 +665,9 @@ namespace ColdAPI_Storage
 	}
 	bool bCFileWriteStreamCancel(uint64_t hStream)
 	{
+		if (!Steam_Config::RemoteStorage)
+			return true;
+
 		if (!hStream)
 			return false;
 
