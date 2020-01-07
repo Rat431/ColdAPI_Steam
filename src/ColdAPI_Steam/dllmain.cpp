@@ -18,7 +18,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 		for (int i = size; i > 0; i--) {
 			if (myfile[i] == '\\') {
 				lstrcpyA(SteamModule, &myfile[i + 1]);
-				RtlFillMemory(&myfile[i + 1], size - i + 1, NULL);
+				RtlFillMemory(&myfile[i + 1], (size - i) + 1, NULL);
 				break;
 
 			}
