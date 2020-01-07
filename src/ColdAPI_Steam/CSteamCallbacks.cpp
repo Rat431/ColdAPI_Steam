@@ -9,7 +9,6 @@ namespace SteamCallback
 	std::vector<CCallbackBase*> CallbacksBuffer;
 	int _CallID;
 	std::mutex Thread;
-	void* Buffer = nullptr;
 	std::vector<CSteamAPIResult_t>::iterator CurrentCB;
 
 	void RunCallbacks()
@@ -125,6 +124,7 @@ namespace SteamCallback
 
 			if (CurrentCB != ResultsBuffer.end() && !ResultsBuffer.empty())
 			{
+				void* Buffer = nullptr;
 				CCallbackMsg_t* CBM = (CCallbackMsg_t*)pCallbackMsg;
 				if (Buffer == nullptr)
 					Buffer = std::malloc(sizeof(CCSteamAPICallCompleted_t));
@@ -135,10 +135,7 @@ namespace SteamCallback
 				if (CurrentCB != ResultsBuffer.end() && randomCB <= ResultsBuffer.size())
 				{
 					CSteamAPIResult_t cresC = *CurrentCB;
-					CBM->m_iCallback = 703;
-					CBM->m_cubParam = cresC.Size;
-					CBM->m_hSteamUser = 1;
-
+					
 					if (Buffer > nullptr) {
 						CCSteamAPICallCompleted_t* cst = (CCSteamAPICallCompleted_t*)Buffer;
 						cst->m_cubParam = cresC.Size;
@@ -147,6 +144,10 @@ namespace SteamCallback
 						Thread.unlock();
 						return true;
 					}
+					CBM->m_iCallback = 703;
+					CBM->m_cubParam = cresC.Size;
+					CBM->m_hSteamUser = 1;
+					CBM->m_pubParam = (unsigned char*)Buffer;
 				}
 			}
 		}
