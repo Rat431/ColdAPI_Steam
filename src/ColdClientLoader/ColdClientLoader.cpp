@@ -222,13 +222,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 							RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)ClientPath, (DWORD)lstrlenA(ClientPath) + 1);
 						}
 						else {
-							RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(ClientPath) + 1);
+							RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 						}
 						if (GetFileAttributesA(Client64Path) != INVALID_FILE_ATTRIBUTES) {
 							RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)Client64Path, (DWORD)lstrlenA(Client64Path) + 1);
 						}
 						else {
-							RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(Client64Path) + 1);
+							RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 						}
 					}
 					else
@@ -245,13 +245,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)ClientPath, (DWORD)lstrlenA(ClientPath) + 1);
 					}
 					else {
-						RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(ClientPath) + 1);
+						RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 					}
 					if (GetFileAttributesA(Client64Path) != INVALID_FILE_ATTRIBUTES) {
 						RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)Client64Path, (DWORD)lstrlenA(Client64Path) + 1);
 					}
 					else {
-						RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(Client64Path) + 1);
+						RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 					}
 				}
 				
@@ -292,13 +292,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 						RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)ClientPath, (DWORD)lstrlenA(ClientPath) + 1);
 					}
 					else {
-						RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(ClientPath) + 1);
+						RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 					}
 					if (GetFileAttributesA(Client64Path) != INVALID_FILE_ATTRIBUTES) {
 						RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)Client64Path, (DWORD)lstrlenA(Client64Path) + 1);
 					}
 					else {
-						RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(Client64Path) + 1);
+						RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 					}
 				}
 				else
@@ -315,13 +315,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 					RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)ClientPath, (DWORD)lstrlenA(ClientPath) + 1);
 				}
 				else {
-					RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(ClientPath) + 1);
+					RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 				}
 				if (GetFileAttributesA(Client64Path) != INVALID_FILE_ATTRIBUTES) {
 					RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)Client64Path, (DWORD)lstrlenA(Client64Path) + 1);
 				}
 				else {
-					RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(Client64Path) + 1);
+					RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)"", (DWORD)lstrlenA(""));
 				}
 			}
 			RegSetValueExA(Registrykey, "Universe", NULL, REG_SZ, (LPBYTE)"Public", (DWORD)lstrlenA("Public") + 1);

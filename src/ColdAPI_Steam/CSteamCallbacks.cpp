@@ -141,13 +141,14 @@ namespace SteamCallback
 						cst->m_cubParam = cresC.Size;
 						cst->m_hAsyncCall = cresC.Call;
 						cst->m_iCallback = cresC.Type;
-						Thread.unlock();
-						return true;
 					}
 					CBM->m_iCallback = 703;
 					CBM->m_cubParam = cresC.Size;
 					CBM->m_hSteamUser = 1;
 					CBM->m_pubParam = (unsigned char*)Buffer;
+
+					Thread.unlock();
+					return true;
 				}
 			}
 		}

@@ -2575,20 +2575,17 @@ namespace ColdAPI_General
 		Steam_Config::AppBuildId = GetPrivateProfileIntA("SteamData", "AppBuildId", NULL, SteamINI);
 		Steam_Config::OnlineMod = GetPrivateProfileIntA("SteamData", "OnlineMode", NULL, SteamINI) != FALSE;
 		Steam_Config::LoadOverLay = GetPrivateProfileIntA("SteamData", "OverLay", NULL, SteamINI) != FALSE;
-		Steam_Config::UnlockAllDLCS = GetPrivateProfileIntA("SteamData", "UnlockAllDLCs", TRUE, SteamINI) != FALSE;
+		Steam_Config::UnlockAllDLCS = GetPrivateProfileIntA("SteamData", "UnlockAllDLCs", true, SteamINI) != FALSE;
 		Steam_Config::LowViolence = GetPrivateProfileIntA("SteamProfile", "LowViolence", NULL, SteamINI) != FALSE;
-		Steam_Config::RemoteStorage = GetPrivateProfileIntA("SteamData", "SteamFileSave", TRUE, SteamINI) != FALSE;
+		Steam_Config::RemoteStorage = GetPrivateProfileIntA("SteamData", "SteamFileSave", true, SteamINI) != FALSE;
 		Steam_Config::StubBypass = GetPrivateProfileIntA("SteamAdditional", "PatchSteamStub", NULL, SteamINI) != FALSE;
 		Steam_Config::ClientEmulation = GetPrivateProfileIntA("SteamAdditional", "ClientEmulation", NULL, SteamINI) != FALSE;
 		Steam_Config::HookForInjection = GetPrivateProfileIntA("SteamClient", "HookInjectionMode", NULL, SteamINI) != FALSE;
 		Steam_Config::InterfaceNFound = GetPrivateProfileIntA("SteamAdditional", "WarnInterfaceNFound", NULL, SteamINI) != FALSE;
 
-		if (!GetPrivateProfileStringA("SteamProfile", "Username", "ColdAPI", Steam_Config::Username, sizeof(Steam_Config::Username), SteamINI))
-			return false;
-		if (!GetPrivateProfileStringA("SteamProfile", "Language", "english", Steam_Config::Language, sizeof(Steam_Config::Language), SteamINI))
-			return false;
-		if (!GetPrivateProfileStringA("SteamData", "SavePath", "Auto", Steam_Config::SaveDirectory, sizeof(Steam_Config::SaveDirectory), SteamINI))
-			return false;
+		GetPrivateProfileStringA("SteamProfile", "Username", "ColdAPI", Steam_Config::Username, sizeof(Steam_Config::Username), SteamINI);
+		GetPrivateProfileStringA("SteamProfile", "Language", "english", Steam_Config::Language, sizeof(Steam_Config::Language), SteamINI);
+		GetPrivateProfileStringA("SteamData", "SavePath", "Auto", Steam_Config::SaveDirectory, sizeof(Steam_Config::SaveDirectory), SteamINI);
 
 		// DLC attempt:
 		if (!Steam_Config::UnlockAllDLCS)
@@ -2784,13 +2781,6 @@ namespace ColdAPI_InitAndShutDown
 				MessageBoxA(NULL, "Please set an AppID and try again.", "ColdAPI", MB_ICONERROR);
 				ExitProcess(NULL);
 			}
-	
-			// Declare some variables to be used for Steam registry.
-			DWORD UserIdentification = Steam_Config::UserID & 0xffffffff;
-			DWORD ProcessID = GetCurrentProcessId();
-
-			// Steam registry attempt.
-			HKEY Registrykey;
 
 			// Check if we're not emulating steamclient as Registry is mainly used to get the steamclient directory to load it and for process checks.
 			if (!Steam_Config::ClientEmulation)
@@ -2807,29 +2797,6 @@ namespace ColdAPI_InitAndShutDown
 					NULL);
 				std::string OverLay32 = ColdAPI_General::FormatTheString("%s\\gameoverlayrenderer.dll", ColdAPI_General::ColdAPI_GetSteamInstallPath(),
 					NULL);
-
-				if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam\\ActiveProcess", 0, KEY_ALL_ACCESS, &Registrykey) == ERROR_SUCCESS)
-				{
-					// Set values to Windows registry.
-					RegSetValueExA(Registrykey, "ActiveUser", NULL, REG_DWORD, (LPBYTE)& UserIdentification, sizeof(DWORD));
-					RegSetValueExA(Registrykey, "pid", NULL, REG_DWORD, (LPBYTE)& ProcessID, sizeof(DWORD));
-					RegSetValueExA(Registrykey, "SteamClientDll", NULL, REG_SZ, (LPBYTE)Clientpath32.c_str(), (DWORD)Clientpath32.length() + 1);
-					RegSetValueExA(Registrykey, "SteamClientDll64", NULL, REG_SZ, (LPBYTE)Clientpath64.c_str(), (DWORD)Clientpath64.length() + 1);
-					RegSetValueExA(Registrykey, "Universe", NULL, REG_SZ, (LPBYTE)"Public", (DWORD)std::strlen("Public") + 1);
-
-					// Close the HKEY Handle.
-					RegCloseKey(Registrykey);
-				}
-				DWORD Disposition;
-				if (RegCreateKeyExA(HKEY_CURRENT_USER, ColdAPI_General::FormatTheString("Software\\Valve\\Steam\\Apps\\%i", EMPTY, Steam_Config::AppId), 0, NULL, 0, KEY_ALL_ACCESS, NULL, &Registrykey, &Disposition) == ERROR_SUCCESS)
-				{
-					// Mark the game running to the Windows registry.
-					DWORD Running = TRUE;
-
-					RegSetValueExA(Registrykey, "Installed", NULL, REG_DWORD, (LPBYTE)& Running, sizeof(DWORD));
-					RegSetValueExA(Registrykey, "Running", NULL, REG_DWORD, (LPBYTE)& Running, sizeof(DWORD));
-					RegCloseKey(Registrykey);
-				}
 
 				// Check if we should load the overlay 
 				if (Steam_Config::LoadOverLay)

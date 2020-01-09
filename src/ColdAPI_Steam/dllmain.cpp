@@ -28,6 +28,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 		lstrcpyA(FileoNe, myfile);
 		lstrcatA(FileoNe, "ColdAPI.ini");
 		if (GetFileAttributesA(FileoNe) == INVALID_FILE_ATTRIBUTES) {
+			ZeroMemory(FileoNe, sizeof(FileoNe));
 			lstrcpyA(FileoNe, myfile);
 			lstrcatA(FileoNe, STEAMAPPID);
 			if (GetFileAttributesA(FileoNe) == INVALID_FILE_ATTRIBUTES) {
