@@ -100,7 +100,6 @@ namespace Steam_Config // Steam configuration
 	extern bool UnlockAllDLCS;
 	extern bool LowViolence;
 	extern bool RemoteStorage;
-	extern bool LoadOverLay;
 	extern bool StubBypass;
 	extern bool InterfaceNFound;
 

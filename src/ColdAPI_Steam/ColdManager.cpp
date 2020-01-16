@@ -61,7 +61,6 @@ namespace Steam_Config // Steam configuration
 	bool UnlockAllDLCS = true;
 	bool LowViolence = false;
 	bool RemoteStorage = true;
-	bool LoadOverLay = false;
 	bool StubBypass = false;
 	bool InterfaceNFound = false;
 
@@ -317,7 +316,7 @@ namespace ColdAPI_Storage
 				{
 					if (Steam_Config::SaveDirectory[c] == NULL)
 					{
-						if (Steam_Config::SaveDirectory[c - 1] != '\\')
+						if (Steam_Config::SaveDirectory[c - 1] != '\\' || Steam_Config::SaveDirectory[c - 1] != '/')
 							std::strcpy(&Steam_Config::SaveDirectory[c], "\\");
 						break;
 					}
@@ -449,7 +448,7 @@ namespace ColdAPI_Storage
 				{
 					if (Steam_Config::UGCDirectotry[c] == NULL)
 					{
-						if (Steam_Config::UGCDirectotry[c - 1] != '\\')
+						if (Steam_Config::UGCDirectotry[c - 1] != '\\' || Steam_Config::UGCDirectotry[c - 1] != '/')
 							std::strcpy(&Steam_Config::UGCDirectotry[c], "\\");
 						break;
 					}
@@ -765,33 +764,24 @@ namespace ColdAPI_General
 	}
 	void SetOverlayNotification(int Value)
 	{
-		if (Steam_Config::LoadOverLay)
-		{
-			FARPROC SetNotificationPositionExt = GetProcAddress(OverLayModule, "SetNotificationPosition");		// Load SetNotificationPosition from STEAMOVERLAY module
-			if (SetNotificationPositionExt)
-				((void(*)(int32_t))SetNotificationPositionExt)(Value);		// Call the virtual loaded function, most of people uses typedef method but in this way more fast
-			else
-				return;
-		}
+		FARPROC SetNotificationPositionExt = GetProcAddress(OverLayModule, "SetNotificationPosition");		// Load SetNotificationPosition from STEAMOVERLAY module
+		if (SetNotificationPositionExt)
+			((void(*)(int32_t))SetNotificationPositionExt)(Value);		// Call the virtual loaded function, most of people uses typedef method but in this way more fast
+		else
+			return;
 	}
 	bool IsOverlayNeededOrEnabled()
 	{
-		if (Steam_Config::LoadOverLay)
-		{
-			FARPROC OverLayEn = GetProcAddress(OverLayModule, "IsOverlayEnabled");		// Load IsOverlayEnabled from STEAMOVERLAY module
-			if (OverLayEn)
-				return ((bool(*)())OverLayEn)(); // Call the virtual loaded function, most of people uses typedef method but in this way more fast
-		}
+		FARPROC OverLayEn = GetProcAddress(OverLayModule, "IsOverlayEnabled");		// Load IsOverlayEnabled from STEAMOVERLAY module
+		if (OverLayEn)
+			return ((bool(*)())OverLayEn)(); // Call the virtual loaded function, most of people uses typedef method but in this way more fast
 		return false;
 	}
 	bool OverlayNeedsPresent()
 	{
-		if (Steam_Config::LoadOverLay)
-		{
-			FARPROC OverLayEn = GetProcAddress(OverLayModule, "BOverlayNeedsPresent");		// Load BOverlayNeedsPresent from STEAMOVERLAY module
-			if (OverLayEn)
-				return ((bool(*)())OverLayEn)(); // Call the virtual loaded function, most of people uses typedef method but in this way more fast
-		}
+		FARPROC OverLayEn = GetProcAddress(OverLayModule, "BOverlayNeedsPresent");		// Load BOverlayNeedsPresent from STEAMOVERLAY module
+		if (OverLayEn)
+			return ((bool(*)())OverLayEn)(); // Call the virtual loaded function, most of people uses typedef method but in this way more fast
 		return false;
 	}
 	int InitInterfaces()
@@ -2574,7 +2564,6 @@ namespace ColdAPI_General
 		Steam_Config::AppId = GetPrivateProfileIntA("SteamData", "AppID", NULL, SteamINI);
 		Steam_Config::AppBuildId = GetPrivateProfileIntA("SteamData", "AppBuildId", NULL, SteamINI);
 		Steam_Config::OnlineMod = GetPrivateProfileIntA("SteamData", "OnlineMode", NULL, SteamINI) != FALSE;
-		Steam_Config::LoadOverLay = GetPrivateProfileIntA("SteamData", "OverLay", NULL, SteamINI) != FALSE;
 		Steam_Config::UnlockAllDLCS = GetPrivateProfileIntA("SteamData", "UnlockAllDLCs", true, SteamINI) != FALSE;
 		Steam_Config::LowViolence = GetPrivateProfileIntA("SteamProfile", "LowViolence", NULL, SteamINI) != FALSE;
 		Steam_Config::RemoteStorage = GetPrivateProfileIntA("SteamData", "SteamFileSave", true, SteamINI) != FALSE;
@@ -2788,35 +2777,17 @@ namespace ColdAPI_InitAndShutDown
 				SetEnvironmentVariableA("SteamAppId", ColdAPI_General::FormatTheString("%lu", EMPTY, Steam_Config::AppId));
 				SetEnvironmentVariableA("SteamGameId", ColdAPI_General::FormatTheString("%llu", EMPTY, Steam_Config::AppId & 0xFFFFFF));
 
-				/// Steam Client and Steam overlay dll paths.
-				std::string Clientpath32 = ColdAPI_General::FormatTheString("%s\\steamclient.dll", ColdAPI_General::ColdAPI_GetSteamInstallPath(),
-					NULL);
-				std::string Clientpath64 = ColdAPI_General::FormatTheString("%s\\steamclient64.dll", ColdAPI_General::ColdAPI_GetSteamInstallPath(),
-					NULL);
-				std::string OverLay64 = ColdAPI_General::FormatTheString("%s\\gameoverlayrenderer64.dll", ColdAPI_General::ColdAPI_GetSteamInstallPath(),
-					NULL);
-				std::string OverLay32 = ColdAPI_General::FormatTheString("%s\\gameoverlayrenderer.dll", ColdAPI_General::ColdAPI_GetSteamInstallPath(),
-					NULL);
+				// Overlay
+				std::string OverLay64 = "GameOverlayRenderer64.dll";
+				std::string OverLay32 = "GameOverlayRenderer.dll";
 
-				// Check if we should load the overlay 
-				if (Steam_Config::LoadOverLay)
-				{
-					std::string OverLay = "";
+				std::string OverLay = "";
 #ifdef _WIN64
-					OverLay = OverLay64;
+				OverLay = OverLay64;
 #else
-					OverLay = OverLay32;
+				OverLay = OverLay32;
 #endif 
-					OverLayModule = LoadLibraryExA(OverLay.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-
-				}
-				std::string Client = "";
-#ifdef _WIN64
-				Client = Clientpath64;
-#else
-				Client = Clientpath32;
-#endif 
-				LoadLibraryExA(Client.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+				OverLayModule = GetModuleHandleA(OverLay.c_str());
 			}
 			
 			// Check if we should hook LoadLibraries functions 
