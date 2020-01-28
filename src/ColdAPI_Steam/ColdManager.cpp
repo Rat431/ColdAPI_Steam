@@ -2580,7 +2580,7 @@ namespace ColdAPI_General
 		if (!Steam_Config::UnlockAllDLCS)
 		{
 			bool NullByte = false;
-			long OffSet = 0;
+			size_t OffSet = 0;
 			char String[500] = { 0 };
 			char Section[0x900] = { 0 };
 			GetPrivateProfileSectionA("DLC", Section, sizeof(Section), SteamINI);
@@ -2590,7 +2590,8 @@ namespace ColdAPI_General
 			while (std::memcmp(&Section[OffSet], &NullByte, 1) != 0)
 			{
 				// Scan the string.
-				std::sscanf(&Section[OffSet], "%u=%s", &DAppid, String);
+				std::sscanf(&Section[OffSet], "%u=%[^\n]", &DAppid, String);
+
 				ColdDLC_Config::DLCsAPPID.push_back(DAppid);
 				ColdDLC_Config::DLCsNames.push_back(String);
 				ColdDLC_Config::DLCsCount++;
@@ -2598,8 +2599,9 @@ namespace ColdAPI_General
 				// Prepare for next DLC String Info
 				std::memset(String, 0, sizeof(String));
 				DAppid = 0;
+
 				// Calculate the offset for the next string, just get the string length and add 1 byte.
-				long SSize = std::strlen(&Section[OffSet]) + 1;
+				size_t SSize = std::strlen(&Section[OffSet]) + 1;
 				OffSet += SSize;
 			}
 		}
